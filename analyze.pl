@@ -1,6 +1,16 @@
 #!/usr/bin/perl
 use strict;	# Enforce some good programming rules
 
+#
+# analyze.pl
+#
+# analyze character frequency in a text file
+# generate dbm files to store the analysis
+#
+# created ???? (it's old)
+# modified 2013-06-24
+#
+
 my ( %FIRST_ORDER, %SECOND_ORDER, %THIRD_ORDER, %FOURTH_ORDER );
 my ( %FIFTH_ORDER, %SIXTH_ORDER, %SEVENTH_ORDER, %EIGHTH_ORDER );
 my ( $line, $length, $char, $array_length, $analysis_string );
@@ -8,12 +18,10 @@ my $count = 0;
 my @prev_chars;
 
 # get a basename for the database from the first argument
-# if no arguments present, use a default
+# if no arguments present, prompt for input and quit
 my $basename = "$ARGV[0]";
 $basename =~ s/\..*$//;	# lop off everything from the last period on
-if ( $basename eq undef ) {
-	$basename = "default";
-}
+if ( $basename eq undef ) { die "Please specify a text file\n"; }
 
 # we will use the following convention to describe first, second, etc. order databases
 # basename_1, basename_2, basename_3, etc.
@@ -66,7 +74,12 @@ dbmopen( %EIGHTH_ORDER, $order8_basename, 0644 )
 %EIGHTH_ORDER = ();
 
 # walk through each line of the input and build database
-while ( <> ) {
+while ( <> ) {	## should probably properly open the file and be all explicit
+	##
+	## lets' try an experiment
+	##
+#	chomp();
+	##
 	$line = $_; # put the line into a more convenient variable
 	$length = length $line;
 	for ( $count = 0; $count < $length; $count++ ) {
