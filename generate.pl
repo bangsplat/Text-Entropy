@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 use strict;	# Enforce some good programming rules
 
 # randomly generate text that has the same frequency

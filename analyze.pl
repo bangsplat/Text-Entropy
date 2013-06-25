@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 use strict;	# Enforce some good programming rules
 
 my ( %FIRST_ORDER, %SECOND_ORDER, %THIRD_ORDER, %FOURTH_ORDER );
