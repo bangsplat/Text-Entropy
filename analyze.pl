@@ -8,8 +8,68 @@ use strict;	# Enforce some good programming rules
 # generate dbm files to store the analysis
 #
 # created ???? (it's old)
-# modified 2013-06-24
+# modified 2013-07-03
 #
+
+my %analysis_hash;
+my ( $line, $length, $char, $array_length, $analysis_string );
+my $count = 0;
+my $total_count = 0;
+my $order = 1;
+my @prev_chars;
+
+my $filename = @ARGV[0];
+my $basename = $filename;
+$basename =~ s/\..*$//;
+
+if ( $basename eq undef ) { die "Please specify a text file\n"; }
+
+open( INPUT_FILE, "<", $filename );
+
+while( <INPUT_FILE> ) {
+	$line = $_;
+	$length = length( $line );
+	
+	for ( $count = 0; $count < $length; $count++ ) {
+		#grab the appropriate character from the data
+		$char = substr( $line, $count, 1 );
+		
+		# add the character to our character array
+		$array_length = push( @prev_chars, $char );
+		
+		# if we have nine items after the push, forget nine characters ago
+		if ( $array_length > $order ) {
+			shift @prev_chars;
+			$array_length--;
+		}
+		
+		$analysis_string = join( '', @prev_chars );
+		
+		# do the first order analysis
+		$analysis_hash{ "$analysis_string" } += 1;
+	}
+}
+
+
+
+my $key;
+
+$count = 0;
+$total_count = 0;
+foreach my $key ( sort { "\L$a" cmp "\L$b" } keys %analysis_hash ) {
+	printf "%-5s = %5g\n", $key, $analysis_hash{ $key };
+	$count++;
+	$total_count += $analysis_hash{ $key };
+}
+printf "first-order analysis counted %g combinations.\n", $count;
+printf "for a total of %g items.\n", $total_count;
+
+
+
+
+
+exit();
+
 
 my ( %FIRST_ORDER, %SECOND_ORDER, %THIRD_ORDER, %FOURTH_ORDER );
 my ( %FIFTH_ORDER, %SIXTH_ORDER, %SEVENTH_ORDER, %EIGHTH_ORDER );
