@@ -1,30 +1,93 @@
 #!/usr/bin/perl
+
 use strict;	# Enforce some good programming rules
+use Getopt::Long;
 
 #
 # analyze.pl
 #
 # analyze character frequency in a text file
-# generate dbm files to store the analysis
+# optionally report the combinations
 #
 # created ???? (it's old)
-# modified 2013-07-03
+# modified 2013-07-05
 #
 
-my %analysis_hash;
+my ( $input_param, $output_param, $order_param, $length_param, $report_param );
+my ( $version_param, $help_param, $debug_param );
 my ( $line, $length, $char, $array_length, $analysis_string );
+my ( $key, $key_string, $key_ord, $value );
 my $count = 0;
 my $total_count = 0;
-my $order = 1;
+
 my @prev_chars;
+my %analysis_hash;
+my $current_order = 0;
 
-my $filename = @ARGV[0];
-my $basename = $filename;
-$basename =~ s/\..*$//;
+GetOptions( 'input|i=s'		=>	\$input_param,
+			'output|o=s'	=>	\$output_param,
+			'order=i'		=>	\$order_param,
+			'length=i'		=>	\$length_param,
+			'report!'		=>	\$report_param,
+			'help|?'		=>	\$help_param,
+			'version|v'		=>	\$version_param,
+			'debug!'		=>	\$debug_param );
 
-if ( $basename eq undef ) { die "Please specify a text file\n"; }
+if ( $debug_param ) {
+	print "DEBUG: Passed parameters:\n";
+	print "\$input_param: $input_param\n";
+	print "\$output_param: $output_param\n";
+	print "\$order_param: $order_param\n";
+	print "\$length_param: $length_param\n";
+	print "\$report_param: $report_param\n";
+	print "\$help_param: $help_param\n";
+	print "\$version_param: $version_param\n";
+	print "\$debug_param: $debug_param\n";
+	print "\n";
+}
 
-open( INPUT_FILE, "<", $filename );
+if ( $help_param ) {
+	print "HELP!\n";
+}
+
+if ( $version_param ) {
+	print "VERSION\n";
+}
+
+if ( $input_param eq undef ) {
+	$input_param = @ARGV[0];
+	if ( $input_param eq undef ) { die "Please specify an input file\n"; }
+}
+
+if ( $order_param eq undef ) { $order_param = 1; }
+
+
+if ( $debug_param ) {
+	print "DEBUG: Adjusted parameters:\n";
+	print "\$input_param: $input_param\n";
+	print "\$output_param: $output_param\n";
+	print "\$order_param: $order_param\n";
+	print "\$length_param: $length_param\n";
+	print "\$report_param: $report_param\n";
+	print "\$help_param: $help_param\n";
+	print "\$version_param: $version_param\n";
+	print "\$debug_param: $debug_param\n";
+	print "\n";
+}
+
+
+
+## analyze the input file
+
+##### make this into a subroutine
+##### that first clears out the global analysis hash
+##### and then fills it
+##### maybe returns the total count
+
+if ( $debug_param ) { print "DEBUG: Starting analysis\n"; }
+
+if ( $debug_param ) { print "DEBUG: Opening input file $input_param\n"; }
+open( INPUT_FILE, "<", $input_param );
 
 while( <INPUT_FILE> ) {
 	$line = $_;
@@ -37,34 +100,107 @@ while( <INPUT_FILE> ) {
 		# add the character to our character array
 		$array_length = push( @prev_chars, $char );
 		
-		# if we have nine items after the push, forget nine characters ago
-		if ( $array_length > $order ) {
+		# if we have more items after the push than we want,
+		# shift the first item off the array
+		if ( $array_length > $order_param ) {
 			shift @prev_chars;
 			$array_length--;
 		}
 		
 		$analysis_string = join( '', @prev_chars );
 		
-		# do the first order analysis
+		# add a tick to the appropriate hash value
 		$analysis_hash{ "$analysis_string" } += 1;
 	}
 }
 
+if ( $debug_param ) { print "DEBUG: analysis done\n\n"; }
 
 
-my $key;
 
-$count = 0;
-$total_count = 0;
-foreach my $key ( sort { "\L$a" cmp "\L$b" } keys %analysis_hash ) {
-	printf "%-5s = %5g\n", $key, $analysis_hash{ $key };
-	$count++;
-	$total_count += $analysis_hash{ $key };
+### report on the findings
+
+if ( $report_param ) {
+
+	if ( $debug_param ) { print "DEBUG: output report\n"; }
+
+	$count = 0;
+	$total_count = 0;
+	foreach my $key ( sort { "\L$a" cmp "\L$b" } keys %analysis_hash ) {
+		my $key_string = $key;
+		$key_string =~ s/ /{sp}/g;
+		$key_string =~ s/[\n\r]/{br}/g;
+		$key_ord = ord( $key );
+	
+		$value = $analysis_hash{ $key };
+	
+		printf "%-12s = %8g\n", $key_string, $value;
+		
+		$count++;
+		$total_count += $analysis_hash{ $key };
+	}
+
+	print "$order_param order analysis counted $count combinations\n";
+	print "for a total of $total_count items\n";
+
 }
-printf "first-order analysis counted %g combinations.\n", $count;
-printf "for a total of %g items.\n", $total_count;
 
 
+### output
+
+if ( $output_param ) {
+	if ( $debug_param ) { print "DEBUG: generating output\n"; }
+	
+	# open output file
+	
+	# do first-order analysis
+	# choose random number between 1 and total count
+	# step through the hash and pick out the resulting character
+	# output to our output buffer
+	# push on @prev_chars array
+	
+	# for i = 1..order-1
+	# do order i analysis
+	# step through hash and look for entries
+	# 	that match the first i characters of @prev_chars
+	# add up the number of hits from each
+	# choose random number in that range
+	# choose appropriate character
+	# output to our output buffer
+	# push on @prev_chars array
+	
+	# when we get to our requested order
+	# do order analysis
+	# step through hash (as above)
+
+	# if we don't have a match, reset back to order 1 and start over
+	
+	# if length of output file is less than $length_param, repeat
+	
+	# close output file
+}
+
+
+if ( $debug_param ) { print "DEBUG: closing input file $input_param\n"; }
+close( INPUT_FILE );
+
+
+
+sub analyze_input {
+	my $analyze_order = shift();
+	if ( $analyze_order eq undef ) { return( 0 ); }
+	
+	# global variables to use
+	#	 INPUT_FILE
+	#	 $current_order
+	#	 %analysis_hash
+	
+	
+	if ( $analysis_order != $current_order ) {
+	
+	}
+	# otherwise, we're good, no analysis needed
+}
 
 
 
