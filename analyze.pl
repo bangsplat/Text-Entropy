@@ -10,7 +10,7 @@ use Getopt::Long;
 # optionally report the combinations
 #
 # created ???? (it's old)
-# modified 2013-07-05
+# modified 2013-07-06
 #
 
 my ( $input_param, $output_param, $order_param, $length_param, $report_param );
@@ -23,6 +23,10 @@ my $total_count = 0;
 my @prev_chars;
 my %analysis_hash;
 my $current_order = 0;
+my $hash_count;
+my ( $random_number, $random_character );
+my $output_buffer = "";
+my $done = 0;
 
 GetOptions( 'input|i=s'		=>	\$input_param,
 			'output|o=s'	=>	\$output_param,
@@ -60,6 +64,7 @@ if ( $input_param eq undef ) {
 }
 
 if ( $order_param eq undef ) { $order_param = 1; }
+if ( $length_param eq undef ) { $length_param = 1000; }
 
 
 if ( $debug_param ) {
@@ -79,43 +84,14 @@ if ( $debug_param ) {
 
 ## analyze the input file
 
-##### make this into a subroutine
-##### that first clears out the global analysis hash
-##### and then fills it
-##### maybe returns the total count
-
 if ( $debug_param ) { print "DEBUG: Starting analysis\n"; }
 
 if ( $debug_param ) { print "DEBUG: Opening input file $input_param\n"; }
-open( INPUT_FILE, "<", $input_param );
+open( INPUT_FILE, "<", $input_param ) or die "Could not open input file $input_param\n";
 
-while( <INPUT_FILE> ) {
-	$line = $_;
-	$length = length( $line );
-	
-	for ( $count = 0; $count < $length; $count++ ) {
-		#grab the appropriate character from the data
-		$char = substr( $line, $count, 1 );
-		
-		# add the character to our character array
-		$array_length = push( @prev_chars, $char );
-		
-		# if we have more items after the push than we want,
-		# shift the first item off the array
-		if ( $array_length > $order_param ) {
-			shift @prev_chars;
-			$array_length--;
-		}
-		
-		$analysis_string = join( '', @prev_chars );
-		
-		# add a tick to the appropriate hash value
-		$analysis_hash{ "$analysis_string" } += 1;
-	}
-}
+analyze_input( $order_param );
 
 if ( $debug_param ) { print "DEBUG: analysis done\n\n"; }
-
 
 
 ### report on the findings
@@ -142,7 +118,6 @@ if ( $report_param ) {
 
 	print "$order_param order analysis counted $count combinations\n";
 	print "for a total of $total_count items\n";
-
 }
 
 
@@ -152,12 +127,39 @@ if ( $output_param ) {
 	if ( $debug_param ) { print "DEBUG: generating output\n"; }
 	
 	# open output file
+	open( OUTPUT_FILE, ">", $output_param ) or die "Can't open output file $output_param\n";
+	if ( $debug_param ) { print "DEBUG: opening output file $output_param\n"; }
 	
-	# do first-order analysis
+	if ( $debug_param ) { print "DEBUG: current order is $current_order\n"; }
+	
+	analyze_input( $current_order );	# do first-order analysis
+	$hash_count = sum_hash();			# get the number of items in the hash
+	
+	if ( $debug_param ) { print "DEBUG: hash count: $hash_count\n"; }
+	
 	# choose random number between 1 and total count
+	$random_number = int( rand( $hash_count - 1 ) );
+	if ( $debug_param ) { print "DEBUG: random number: $random_number\n"; }
+	
 	# step through the hash and pick out the resulting character
-	# output to our output buffer
-	# push on @prev_chars array
+	# use the last character of the bit
+	$random_character = substr( hash_index_value( $random_number ), -1, 1 );
+	if ( $debug_param ) { print "DEBUG: random character is $random_character\n"; }
+	
+	$output_buffer .= $random_character;		# output to our output buffer
+	push( @prev_chars, $random_character );		# push on @prev_chars array
+	if ( $debug_param ) { print "DEBUG: prev_chars: " . join( '', @prev_chars ) . "\n"; }
+	
+	while ( ! $done ) {
+		if ( $current_order < $order_param ) {
+			$current_order++;
+		}
+		
+		
+		##### TEMPORARY - to avoid an infinite loop
+		$done = 1;
+		#####
+	}
 	
 	# for i = 1..order-1
 	# do order i analysis
@@ -177,7 +179,13 @@ if ( $output_param ) {
 	
 	# if length of output file is less than $length_param, repeat
 	
+	
+	# write output buffer to the output file
+	print OUTPUT_FILE $output_buffer;
+	
 	# close output file
+	close( OUTPUT_FILE );
+	if ( $debug_param ) { print "DEBUG: closing output file $output_param\n"; }
 }
 
 
@@ -185,19 +193,74 @@ if ( $debug_param ) { print "DEBUG: closing input file $input_param\n"; }
 close( INPUT_FILE );
 
 
+sub sum_hash {
+	my $total_count = 0;
+	foreach my $key ( keys %analysis_hash ) { $total_count += $analysis_hash{ $key }; }
+	return( $total_count );
+}
+
+
+sub hash_index_value {
+	my $index = shift();
+	my $count = 0;
+	if ( $debug_param ) { print "DEBUG: hash_index_value() - looking for $index\n"; }
+	foreach my $key ( keys %analysis_hash ) {
+		$count += $analysis_hash{ $key };
+		if ( $debug_param ) { print "DEBUG: hash_index_value() - count is $count\n"; }
+		if ( $count > $index ) {
+			if ( $debug_param ) {
+				print "DEBUG: hash_index_value() - HIT!\n";
+				print "DEBUG: hash_index_value() - return value is $key\n";
+			}
+			return( $key );
+		}
+	}
+}
+
 
 sub analyze_input {
 	my $analyze_order = shift();
 	if ( $analyze_order eq undef ) { return( 0 ); }
 	
-	# global variables to use
-	#	 INPUT_FILE
-	#	 $current_order
-	#	 %analysis_hash
+	if ( $debug_param ) { print "DEBUG: starting analysis ($analyze_order)\n"; }
 	
-	
-	if ( $analysis_order != $current_order ) {
-	
+	if ( $analyze_order != $current_order ) {
+		seek( INPUT_FILE, 0, 0 );		# rewind the input file
+		if ( $debug_param ) { print "DEBUG: rewinding input file\n"; }
+		
+		# clear out the current hash
+		%analysis_hash = ();
+		if ( $debug_param ) { print "DEBUG: clearing analysis hash\n"; }
+		
+		# go through the file and analyze it
+		while( <INPUT_FILE> ) {
+			$line = $_;
+			$length = length( $line );
+			
+#			if ( $debug_param ) { print "DEBUG: input line: $line\n"; }
+			
+			for ( $count = 0; $count < length; $count++ ) {
+				#grab the appropriate character from the data
+				$char = substr( $line, $count, 1 );
+				
+				# add the character to our character array
+				$array_length = push( @prev_chars, $char );
+				
+				# if we have more items after the push than we want,
+				# shift the first item off the array
+				while ( $array_length > $order_param ) {
+					shift @prev_chars;
+					$array_length--;
+				}
+				
+				# make the @prev_chars array into a string and put it into $analysis_string
+				$analysis_string = join( '', @prev_chars );
+				
+				# add a tick to the appropriate hash value
+				$analysis_hash{ "$analysis_string" } += 1;
+			}
+		}
+		$current_order = $analyze_order;
 	}
 	# otherwise, we're good, no analysis needed
 }
