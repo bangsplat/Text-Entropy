@@ -10,7 +10,7 @@ use Getopt::Long;
 # optionally report the combinations
 #
 # created ???? (it's old)
-# modified 2013-07-06
+# modified 2013-07-07
 #
 
 my ( $input_param, $output_param, $order_param, $length_param, $report_param );
@@ -82,43 +82,8 @@ if ( $debug_param ) {
 
 
 
-## analyze the input file
-
-if ( $debug_param ) { print "DEBUG: Starting analysis\n"; }
-
 if ( $debug_param ) { print "DEBUG: Opening input file $input_param\n"; }
 open( INPUT_FILE, "<", $input_param ) or die "Could not open input file $input_param\n";
-
-analyze_input( $order_param );
-
-if ( $debug_param ) { print "DEBUG: analysis done\n\n"; }
-
-
-### report on the findings
-
-if ( $report_param ) {
-
-	if ( $debug_param ) { print "DEBUG: output report\n"; }
-
-	$count = 0;
-	$total_count = 0;
-	foreach my $key ( sort { "\L$a" cmp "\L$b" } keys %analysis_hash ) {
-		my $key_string = $key;
-		$key_string =~ s/ /{sp}/g;
-		$key_string =~ s/[\n\r]/{br}/g;
-		$key_ord = ord( $key );
-	
-		$value = $analysis_hash{ $key };
-	
-		printf "%-12s = %8g\n", $key_string, $value;
-		
-		$count++;
-		$total_count += $analysis_hash{ $key };
-	}
-
-	print "$order_param order analysis counted $count combinations\n";
-	print "for a total of $total_count items\n";
-}
 
 
 ### output
@@ -132,7 +97,7 @@ if ( $output_param ) {
 	
 	if ( $debug_param ) { print "DEBUG: current order is $current_order\n"; }
 	
-	analyze_input( $current_order );	# do first-order analysis
+	analyze_input( 1 );	# do first-order analysis
 	$hash_count = sum_hash();			# get the number of items in the hash
 	
 	if ( $debug_param ) { print "DEBUG: hash count: $hash_count\n"; }
@@ -186,6 +151,39 @@ if ( $output_param ) {
 	# close output file
 	close( OUTPUT_FILE );
 	if ( $debug_param ) { print "DEBUG: closing output file $output_param\n"; }
+} else {
+	
+	## analyze the input file
+	if ( $debug_param ) { print "DEBUG: Starting analysis\n"; }
+	analyze_input( $order_param );
+	if ( $debug_param ) { print "DEBUG: analysis done\n\n"; }
+
+	### report on the findings
+
+	if ( $report_param ) {
+
+		if ( $debug_param ) { print "DEBUG: output report\n"; }
+
+		$count = 0;
+		$total_count = 0;
+		foreach my $key ( sort { "\L$a" cmp "\L$b" } keys %analysis_hash ) {
+			my $key_string = $key;
+			$key_string =~ s/ /{sp}/g;
+			$key_string =~ s/[\n\r]/{br}/g;
+			$key_ord = ord( $key );
+	
+			$value = $analysis_hash{ $key };
+	
+			printf "%-12s = %8g\n", $key_string, $value;
+		
+			$count++;
+			$total_count += $analysis_hash{ $key };
+		}
+
+		print "$order_param order analysis counted $count combinations\n";
+		print "for a total of $total_count items\n";
+	}
+
 }
 
 
