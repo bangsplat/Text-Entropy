@@ -96,22 +96,25 @@ if ( $output_param ) {
 	if ( $debug_param ) { print "DEBUG: opening output file $output_param\n"; }
 	
 	if ( $debug_param ) { print "DEBUG: current order is $current_order\n"; }
+		
+# 	analyze_input( 1 );	# do first-order analysis
+# 	$hash_count = sum_hash();			# get the number of items in the hash
+# 	
+# 	if ( $debug_param ) { print "DEBUG: hash count: $hash_count\n"; }
+# 	
+# 	# choose random number between 1 and total count
+# 	$random_number = int( rand( $hash_count - 1 ) );
+# 	if ( $debug_param ) { print "DEBUG: random number: $random_number\n"; }
+# 	
+# 	# step through the hash and pick out the resulting character
+# 	# use the last character of the bit
+# 	$random_character = substr( hash_index_value( $random_number ), -1, 1 );
+# 	if ( $debug_param ) { print "DEBUG: random character is $random_character\n"; }
+#	
+#	$output_buffer .= $random_character;		# output to our output buffer
 	
-	analyze_input( 1 );	# do first-order analysis
-	$hash_count = sum_hash();			# get the number of items in the hash
-	
-	if ( $debug_param ) { print "DEBUG: hash count: $hash_count\n"; }
-	
-	# choose random number between 1 and total count
-	$random_number = int( rand( $hash_count - 1 ) );
-	if ( $debug_param ) { print "DEBUG: random number: $random_number\n"; }
-	
-	# step through the hash and pick out the resulting character
-	# use the last character of the bit
-	$random_character = substr( hash_index_value( $random_number ), -1, 1 );
-	if ( $debug_param ) { print "DEBUG: random character is $random_character\n"; }
-	
-	$output_buffer .= $random_character;		# output to our output buffer
+	$output_buffer .= get_random_character();
+
 	push( @prev_chars, $random_character );		# push on @prev_chars array
 	if ( $debug_param ) { print "DEBUG: prev_chars: " . join( '', @prev_chars ) . "\n"; }
 	
@@ -125,6 +128,24 @@ if ( $output_param ) {
 		$done = 1;
 		#####
 	}
+	
+	
+	## here's the logic:
+	
+	# we have two limits:
+	#	the order we want to be at
+	# 	the number of characters we want to generate
+	# order goes from 1 .. order
+	# each character we generate, we increment output character counter
+	# 
+	# we should make sure length > order
+	# we step through order 1..order, get one character each step
+	# then keep going at the target level until we hit our limit
+	#
+	# probably need to create a sub that selects the character
+	# remember, for orders > 1, we need to find all hash keys that start with @prev_chars
+	# the tricky thing is that the level 1 hash is different from level > 1
+	
 	
 	# for i = 1..order-1
 	# do order i analysis
@@ -189,6 +210,43 @@ if ( $output_param ) {
 
 if ( $debug_param ) { print "DEBUG: closing input file $input_param\n"; }
 close( INPUT_FILE );
+
+
+# get_random_character()
+#
+# do a level 1 analysis and pick a random character based on the overall distribution
+#
+sub get_random_character {
+	analyze_input( 1 );			# do first-order analysis
+	$hash_count = sum_hash();	# get the number of items in the hash
+	
+	# choose random number between 1 and total count
+	$random_number = int( rand( $hash_count - 1 ) );
+	if ( $debug_param ) { print "DEBUG: random number: $random_number\n"; }
+	
+	# step through the hash and pick out the resulting character
+	# use the last character of the bit
+	$random_character = substr( hash_index_value( $random_number ), -1, 1 );
+	if ( $debug_param ) { print "DEBUG: random character is $random_character\n"; }
+	
+	return( $random_character );
+}
+
+sub get_order_characters {
+	# OK
+	# go through the analysis hash
+	# compare the first order-1 characters of the key to @prev_chars
+	# if it matches, move the key/value pair into another hash?
+	# 	maybe make the key the just the last character
+	# then sum that hash, grab a random number in the range of the sum
+	# and pull the index from the intermediate hash and return the key
+	# 
+	# if the sum of the intermediate hash is 0
+	# 	get_random_character()
+	# 
+	
+	return;
+}
 
 
 sub sum_hash {
